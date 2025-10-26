@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Belleza&family=Geist:wght@100..900&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <title>Sybelle | Project Demo</title>
+</head>
+
+<body>
+    <main>
+        <!-- Parallax Background Elements -->
+        <img src="img/Background.png" data-distance="-200" data-speedx="0.2" data-speedy="0.1" data-speedz="0" class="parallax bg-img">
+        <img src="img/Building 4.png" data-distance="850" data-speedx="0.27" data-speedy="0.2" data-speedz="0" class="parallax mountain-4">
+        <div>
+            <img src="img/Vector.svg" data-speedx="0.065" data-distance="-500" data-speedz="0" class="logo parallax" alt="logo">
+        </div>
+        <img src="img/Building 3.png" data-distance="1100" data-speedx="0.195" data-speedy="0.15" data-speedz="0.15" class="parallax mountain-3">
+        <img src="img/Shine_2.png" data-distance="0" data-speedx="0.1" data-speedy="0.15" data-speedz="0" class="parallax shine-2">
+        <img src="img/Fog_2.png" data-distance="0" data-speedx="0.125" data-speedy="0.15" data-speedz="0" class="parallax fog-2">
+        <img src="img/Building 2.png" data-distance="0" data-speedx="0.15" data-speedy="0.075" data-speedz="0" class="parallax mountain-2">
+        <img src="img/Fog_1.png" data-distance="0" data-speedx="0.16" data-speedy="0.2" data-speedz="0.05" class="parallax fog-1">
+        <!-- <img src="img/Fog_2.png" data-speedx="0.16" data-speedy="0.2" class="parallax fog-4">
+        <img src="img/Building 5.png" data-speedx="0.1" data-speedy="0.07" class="parallax mountain-5"> -->
+        <img src="img/Building 1.png" data-distance="0" data-speedx="0.125" data-speedy="0.07" data-speedz="0.13" class="parallax mountain-1">
+        <div>
+            <h1 data-speedx="0.065" data-distance="-500" data-speedz="0" class="text parallax">SYBELLE</h1>
+        </div>
+        <img src="img/Fog_0.png" data-distance="0" data-speedx="0.075" data-speedy="0.075" data-speedz="0" class="parallax fog-0">
+        <img src="img/Building 0.png" data-distance="1500" data-speedx="0.075" data-speedy="0.07" data-speedz="0.175" class="parallax mountain-0">
+        <img src="img/Fog_Water.png" data-distance="1800" data-speedx="0.05" data-speedz="0" class="parallax fog-water">
+        <img src="img/Water.png" data-distance="200" data-speedx="0.035" data-speedz="0" class="parallax water">
+        <img src="img/Fog_Foreground.png" data-distance="2000" data-speedx="0.0175" data-speedz="0" class="parallax fog-fg">
+        <img src="img/Foreground.png" data-distance="2100" data-speedx="0.025" data-speedz="0.12" class="parallax fg-img-2">
+        <img src="img/Foreground.png" data-distance="2200" data-speedx="0.005" data-speedz="0.12" class="parallax fg-img">
+        <img src="img/Front Fog.png" data-distance="2500" data-speedx="0.075" data-speedz="0" class="parallax fog-img">
+        <img src="img/Front Fog.png" data-distance="2700" data-speedx="0.1" data-speedz="0" class="parallax fog-img-2">
+        <!-- <div class="vignette"></div> -->
+
+        <!-- Menu Toggle Button -->
+        <button class="menu-toggle-btn" aria-label="Toggle Menu">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+
+        <!-- UI Toggle Button -->
+        <button class="ui-toggle-btn" aria-label="Toggle UI Overlay">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+        </button>
+
+        <!-- Side Menu -->
+        <div class="side-menu">
+            <div class="side-menu-header">
+                <div class="side-menu-logo">SYBELLE</div>
+            </div>
+            <nav class="side-menu-nav">
+                <a href="#team" class="side-menu-item">
+                    <span class="side-menu-title">TEAM</span>
+                    <span class="side-menu-desc">Meet the core team behind Sybelle</span>
+                </a>
+                <a href="#portfolio" class="side-menu-item">
+                    <span class="side-menu-title">PORTFOLIO</span>
+                    <span class="side-menu-desc">Gallery of our work for clients</span>
+                </a>
+                <a href="#testimonials" class="side-menu-item">
+                    <span class="side-menu-title">TESTIMONIALS</span>
+                    <span class="side-menu-desc">What our clients say about us</span>
+                </a>
+                <a href="#about" class="side-menu-item">
+                    <span class="side-menu-title">ABOUT</span>
+                    <span class="side-menu-desc">Our commitment and values</span>
+                </a>
+                <a href="#contact" class="side-menu-item">
+                    <span class="side-menu-title">CONTACT</span>
+                    <span class="side-menu-desc">Get in touch with us</span>
+                </a>
+                <a href="#careers" class="side-menu-item">
+                    <span class="side-menu-title">CAREERS</span>
+                    <span class="side-menu-desc">Join our growing team</span>
+                </a>
+                <a href="#blog" class="side-menu-item">
+                    <span class="side-menu-title">BLOG</span>
+                    <span class="side-menu-desc">Industry news and insights</span>
+                </a>
+                <a href="#trophy-case" class="side-menu-item coming-soon">
+                    <span class="side-menu-title">TROPHY CASE</span>
+                    <span class="side-menu-desc">Awards and recognition • Coming Soon</span>
+                </a>
+            </nav>
+        </div>
+
+        <!-- UI Overlay -->
+        <div class="ui-overlay">
+            <!-- Navigation Bar -->
+            <nav class="navbar">
+                <div class="nav-logo">SYBELLE</div>
+                <ul class="nav-menu">
+                    <li class="nav-item"><a href="#home">ABOUT</a></li>
+                    <li class="nav-item"><a href="#about">PORTFOLIO</a></li>
+                    <li class="nav-item active"><a href="#gallery">GALLERY</a></li>
+                    <li class="nav-item"><a href="#features">TESTIMONIALS</a></li>
+                </ul>
+            </nav>
+
+            <!-- Hero Section -->
+            <div class="hero-content">
+                <h2 class="hero-title">ENDLESS<br>DISCOVERY</h2>
+
+                <div class="hero-actions">
+                    <button class="watch-btn">
+                        <span class="play-icon">▶</span>
+                        WATCH STORY
+                    </button>
+                    <button class="discover-btn">CONTACT</button>
+                </div>
+            </div>
+
+            <!-- Social Links -->
+            <div class="social-links">
+                <a href="#" class="social-link">INSTAGRAM</a>
+                <a href="#" class="social-link">YOUTUBE</a>
+            </div>
+
+            <!-- Statistics -->
+            <div class="stats-container">
+                <div class="stat-item">
+                    <div class="stat-number">2025</div>
+                    <div class="stat-label">Collection</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">50+</div>
+                    <div class="stat-label">Destinations</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">∞</div>
+                    <div class="stat-label">Moments</div>
+                </div>
+            </div>
+
+            <!-- Info Box -->
+            <div class="info-box">
+                <h3 class="info-title">SYBELLE</h3>
+                <p class="info-text">Sybelle (Si-bell) is a word that combines Sy for
+Simplicity and Belle meaning beautiful in French. This represents our philosophy of
+achieving beauty through simplicity.</p>
+            </div>
+
+            <!-- Page Indicators -->
+            <div class="page-indicator top">01</div>
+            <div class="page-progress">
+                <div class="page-progress-bar"></div>
+            </div>
+            <div class="page-indicator bottom">04</div>
+        </div>
+    </main>
+    
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.11.0/dist/gsap.min.js"></script>
+    <script src="js/app.js"></script>
+</body>
+
+</html>
