@@ -10,7 +10,7 @@ function calculateScreenScale() {
     if (width >= 1920) {
         screenScale = 1.25; // Large screens
     } else if (width >= 1440) {
-        screenScale = 1; // Desktop
+        screenScale = 1.1; // Desktop
     } else if (width >= 1024) {
         screenScale = 0.9; // Laptop
     } else if (width >= 768) {
@@ -104,14 +104,14 @@ window.addEventListener('load', () => {
     .to('.mountain-2', {
         opacity: 1,
         x: 0,
-        duration: 3,
+        duration: 4,
         ease: "power2.inOut"
     }, 1.3)
 
     .to('.mountain-1', {
         opacity: 1,
         x: 0,
-        duration: 3,
+        duration: 5,
         ease: "power2.inOut"
     }, 1.3)
 
