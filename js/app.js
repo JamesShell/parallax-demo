@@ -11,7 +11,7 @@ let animationsComplete = false;
 
 function update(cursorPos) {
     // Only apply parallax if animations are complete
-    if (tl.isActive()) return;
+    if (!animationsComplete) return;
 
     parallax_el.forEach(el => {
         let speedX = el.dataset.speedx;
