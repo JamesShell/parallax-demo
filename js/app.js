@@ -2,8 +2,32 @@ const parallax_el = document.querySelectorAll('.parallax');
 
 let xValue = 0, yValue = 0;
 let animationsComplete = false;
+let screenScale = 1;
 
+// Calculate scale based on screen width
+function calculateScreenScale() {
+    const width = window.innerWidth;
+    if (width >= 1920) {
+        screenScale = 1.25; // Large screens
+    } else if (width >= 1440) {
+        screenScale = 1; // Desktop
+    } else if (width >= 1024) {
+        screenScale = 0.9; // Laptop
+    } else if (width >= 768) {
+        screenScale = 0.85; // Tablet
+    } else {
+        screenScale = 0.8; // Mobile
+    }
+}
 
+// Initial calculation
+calculateScreenScale();
+
+// Recalculate on resize
+window.addEventListener('resize', () => {
+    calculateScreenScale();
+    update(0);
+});
 
     let tl = gsap.timeline({
         defaults: { ease: "power2.inOut" }
@@ -21,7 +45,8 @@ function update(cursorPos) {
         let zValue = cursorPos - parseFloat(getComputedStyle(el).left);
         let isInLeft = parseFloat(getComputedStyle(el).left) < window.innerWidth / 2 ? 1 : -1;
 
-        el.style.transform = `translateX(calc(-50% + ${-xValue * speedX}px)) translateY(calc(-50% + ${yValue * speedY}px)) perspective(2300px) translateZ(${zValue * isInLeft * speedZ}px)`;
+        // Apply screen scale to parallax elements
+        el.style.transform = `translateX(calc(-50% + ${-xValue * speedX}px)) translateY(calc(-50% + ${yValue * speedY}px)) scale(${screenScale}) perspective(2300px) translateZ(${zValue * isInLeft * speedZ}px)`;
     });
 }
 

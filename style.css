@@ -39,9 +39,11 @@ main {
 
 
 .logo {
-    width: 250px;
+    width: min(200px, 15vw);
+    max-width: 250px;
+    min-width: 120px;
     position: absolute;
-    top: calc(50% - 125px);
+    top: calc(50% - 140px);
     left: calc(50%);
     z-index: 2;
 }
@@ -122,8 +124,9 @@ main {
     font-family: "Belleza", sans-serif;
     font-weight: 400;
     text-align: center;
-    font-size: 8.6rem;
+    font-size: clamp(2.5rem, 6vw, 6.5rem);
     pointer-events: auto;
+    white-space: nowrap;
 }
 
 .fog-0 {
@@ -330,7 +333,7 @@ main {
     display: flex;
     align-items: center;
     gap: 1rem;
-    background: rgba(62, 63, 62, 0.3);
+    background: rgba(62, 63, 62, 0.4);
     border: 2px solid var(--hipster-hippo);
     color: var(--vanilla-sugar);
     padding: 1rem 2rem;
@@ -739,6 +742,26 @@ main {
         width: 280px;
         right: 2rem;
     }
+
+    .logo {
+        width: min(180px, 14vw);
+        top: calc(50% - 120px);
+    }
+
+    .text {
+        font-size: clamp(2rem, 5.5vw, 5.5rem);
+    }
+}
+
+@media (max-width: 992px) {
+    .logo {
+        width: min(160px, 15vw);
+        top: calc(50% - 110px);
+    }
+
+    .text {
+        font-size: clamp(1.8rem, 5vw, 5rem);
+    }
 }
 
 @media (max-width: 768px) {
@@ -812,6 +835,16 @@ main {
         width: 3px;
     }
 
+    /* Logo and Text Mobile */
+    .logo {
+        width: min(140px, 20vw);
+        top: calc(50% - 100px);
+    }
+
+    .text {
+        font-size: clamp(1.8rem, 8vw, 4.5rem);
+    }
+
     /* Side Menu Mobile */
     .side-menu {
         width: 100%;
@@ -845,5 +878,16 @@ main {
     .ui-toggle-btn svg {
         width: 18px;
         height: 18px;
+    }
+}
+
+@media (max-width: 480px) {
+    .logo {
+        width: min(110px, 25vw);
+        top: calc(50% - 85px);
+    }
+
+    .text {
+        font-size: clamp(1.4rem, 10vw, 3rem);
     }
 }
