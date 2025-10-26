@@ -6,7 +6,7 @@ let animationsComplete = false;
 
 
     let tl = gsap.timeline({
-        defaults: { ease: "power3.out" }
+        defaults: { ease: "power2.inOut" }
     });
 
 function update(cursorPos) {
@@ -39,22 +39,31 @@ window.addEventListener('mousemove', (e) => {
 window.addEventListener('load', () => {
     // Set initial states with CSS properties to avoid transform conflicts
     gsap.set('.ui-overlay', { opacity: 0 });
-    gsap.set('.water', { y: 1200 });
-    gsap.set('.mountain-0', { y: 1400 });
-    gsap.set('.mountain-3', { y: 1300 });
-    gsap.set('.mountain-4', { y: 1200 });
-    gsap.set('.mountain-1', { x: -1200 });
-    gsap.set('.mountain-2', { x: 1200 });
-    gsap.set('.logo', { scale: 0, rotation: -180 });
-    gsap.set('.text', { scale: 0.5, y: 50 });
-    gsap.set('.fg-img, .fg-img-2', { scale: 2 });
-    gsap.set('.fog-img, .fog-img-2', { scale: 2 });
+    gsap.set('.bg-img', { opacity: 0 });
+    gsap.set('.water', { opacity: 0, y: 600 });
+    gsap.set('.mountain-0', { opacity: 0, y: 800 });
+    gsap.set('.mountain-3', { opacity: 0, y: 800 });
+    gsap.set('.mountain-4', { opacity: 0, y: 800 });
+    gsap.set('.mountain-1', { opacity: 0, x: -1000 });
+    gsap.set('.mountain-2', { opacity: 0, x: 1000 });
+    gsap.set('.logo', { opacity: 0, scale: 0});
+    gsap.set('.text', { opacity: 0, scale: 0.5, y: 50 });
+    gsap.set('.shine-2', { opacity: 0 });
+    gsap.set('.fog-0', { opacity: 0 });
+    gsap.set('.fog-1', { opacity: 0 });
+    gsap.set('.fog-2', { opacity: 0 });
+    gsap.set('.fog-water', { opacity: 0 });
+    gsap.set('.fog-fg', { opacity: 0 });
+    gsap.set('.fg-img', { opacity: 0, scale: 2 });
+    gsap.set('.fg-img-2', { opacity: 0, scale: 2 });
+    gsap.set('.fog-img', { opacity: 0, scale: 2 });
+    gsap.set('.fog-img-2', { opacity: 0, scale: 2 });
 
     // Background first (with 1s delay for loading)
     tl.to('.bg-img', {
         opacity: 1,
-        duration: 0.8,
-        ease: "power2.out"
+        duration: 1.8,
+        ease: "power1.inOut"
     }, 1)
 
 
@@ -62,72 +71,71 @@ window.addEventListener('load', () => {
     .to('.water', {
         opacity: 1,
         y: 0,
-        duration: 1,
+        duration: 2,
         ease: "power2.out"
     }, 1.2)
-
-
-    // Buildings scrolling up at different speeds (furthest to closest)
-    .to('.mountain-4', {
-        opacity: 1,
-        y: 0,
-        duration: 0.9,
-        ease: "power3.out"
-    }, 1.3)
-
-    .to('.mountain-3', {
-        opacity: 1,
-        y: 0,
-        duration: 1,
-        ease: "power3.out"
-    }, 1.5)
-
-    .to('.mountain-0', {
-        opacity: 1,
-        y: 0,
-        duration: 1.1,
-        ease: "power3.out"
-    }, 1.7)
-
-    // Shine effect
-    .to('.shine-2', {
-        opacity: 1,
-        duration: 0.6,
-        ease: "power2.inOut"
-    }, 1.9)
-
-    // Fog layers
-    .to('.fog-2', {
-        opacity: 1,
-        duration: 0.5,
-        ease: "power2.inOut"
-    }, 2.1)
-
-    .to('.fog-1', {
-        opacity: 1,
-        duration: 0.5,
-        ease: "power2.inOut"
-    }, 2.3)
 
     // Buildings from sides
     .to('.mountain-2', {
         opacity: 1,
         x: 0,
-        duration: 0.8,
-        ease: "power2.out"
-    }, 2.4)
+        duration: 3,
+        ease: "power2.inOut"
+    }, 1.3)
 
     .to('.mountain-1', {
         opacity: 1,
         x: 0,
-        duration: 0.8,
+        duration: 3,
+        ease: "power2.inOut"
+    }, 1.3)
+
+    // Buildings scrolling up at different speeds (furthest to closest)
+    .to('.mountain-4', {
+        opacity: 1,
+        y: 0,
+        duration: 1.2,
         ease: "power2.out"
-    }, 2.6)
+    }, 1.5)
+
+    .to('.mountain-3', {
+        opacity: 1,
+        y: 0,
+        duration: 2.5,
+        ease: "power2.out"
+    }, 1.5)
+
+    .to('.mountain-0', {
+        opacity: 1,
+        y: 0,
+        duration: 3,
+        ease: "power2.out"
+    }, 1.5)
+
+    // Shine effect
+    .to('.shine-2', {
+        opacity: 1,
+        duration: 1.5,
+        ease: "power1.inOut"
+    }, 2)
+
+    // Fog layers
+    .to('.fog-2', {
+        opacity: 1,
+        duration: 1.2,
+        ease: "power1.inOut"
+    }, 2.2)
+
+    .to('.fog-1', {
+        opacity: 1,
+        duration: 1.2,
+        ease: "power1.inOut"
+    }, 2.4)
 
     .to('.fog-0', {
         opacity: 1,
-        duration: 0.5,
-        ease: "power2.inOut"
+        duration: 1.2,
+        ease: "power1.inOut"
     }, 2.8)
 
     // Logo with rotation
@@ -135,65 +143,65 @@ window.addEventListener('load', () => {
         opacity: 1,
         scale: 1,
         rotation: 0,
-        duration: 0.7,
-        ease: "back.out(1.5)"
-    }, 3.0)
+        duration: 1,
+        ease: "back.out(1.2)"
+    }, 3)
 
     // Text
     .to('.text', {
         opacity: 1,
         scale: 1,
         y: 0,
-        duration: 0.7,
-        ease: "back.out(1.3)"
+        duration: 1,
+        ease: "back.out(1.1)"
     }, 3.2)
 
     .to('.fog-water', {
         opacity: 1,
-        duration: 0.6,
-        ease: "power2.inOut"
-    }, 3.5)
+        duration: 1.3,
+        ease: "power1.inOut"
+    }, 3.4)
 
     .to('.fog-fg', {
         opacity: 1,
-        duration: 0.6,
-        ease: "power2.inOut"
-    }, 3.7)
+        duration: 1.3,
+        ease: "power1.inOut"
+    }, 3.6)
 
     // Foregrounds with scale
     .to('.fg-img-2', {
         opacity: 1,
         scale: 1,
-        duration: 0.7,
-        ease: "power2.out"
-    }, 3.9)
+        duration: 2.5,
+        ease: "power2.inOut"
+    }, 3.8)
 
     .to('.fg-img', {
         opacity: 1,
         scale: 1,
-        duration: 0.7,
-        ease: "power2.out"
-    }, 4.1)
+        duration: 2.5,
+        ease: "power2.inOut"
+    }, 4)
 
     .to('.fog-img', {
         opacity: 1,
         scale: 1,
-        duration: 0.6,
-        ease: "power2.out"
-    }, 4.3)
+        duration: 1.5,
+        ease: "power2.inOut"
+    }, 4.2)
 
     .to('.fog-img-2', {
         opacity: 1,
         scale: 1,
-        duration: 0.6,
-        ease: "power2.out"
-    }, 4.5)
+        duration: 1.5,
+        ease: "power2.inOut"
+    }, 4.4)
 
     // UI Overlay fade in last
     .to('.ui-overlay', {
         opacity: 1,
-        duration: 0.8,
-        ease: "power2.inOut",
+        duration: 1.5,
+        ease: "power1.inOut",
         onComplete: () => {
             // Mark animations as complete
             document.querySelectorAll('.parallax').forEach(el => {
@@ -204,7 +212,7 @@ window.addEventListener('load', () => {
             // Apply initial parallax state
             update(0);
         }
-    }, 4.7);
+    }, 4.6);
 });
 
 // UI Interactions
