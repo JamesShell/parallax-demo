@@ -54,13 +54,11 @@ main {
 
 
 .logo {
-    width: min(200px, 15vw);
-    max-width: 250px;
-    min-width: 120px;
+    width: clamp(100px, 10vw, 130px);
     position: absolute;
-    top: calc(50% - 140px);
+    top: calc(50% - 90px);
     left: calc(50%);
-    z-index: 4;
+    z-index: 2;
     color: var(--gold-1);
 }
 
@@ -95,9 +93,8 @@ main {
     width: 900px;
     position: absolute;
     top: calc(50% - 80px);
-    left: calc(50% + 450px);
+    left: calc(50% + 470px);
     z-index: 5;
-    
 }
 
 .mountain-5 {
@@ -131,23 +128,20 @@ main {
     width: 1000px;
     position: absolute;
     top: calc(50% + 50px);
-    left: calc(50% - 400px);
+    left: calc(50% - 450px);
     z-index: 7;
-
-    
-    /* background-color: red; */
 }
 
 .text {
-    z-index: 4;
+    z-index: 2;
     position: absolute;
-    top: calc(50%);
+    top: calc(50% - 20px);
     left: 50%;
     color: var(--vanilla-sugar);
     font-family: "Belleza", sans-serif;
     font-weight: 400;
     text-align: center;
-    font-size: clamp(2.5rem, 6vw, 6.5rem);
+    font-size: clamp(1.5rem, 6vw, 4rem);
     pointer-events: auto;
     white-space: nowrap;
 }
@@ -278,7 +272,7 @@ main {
 }
 
 .parallax {
-    pointer-events: none;
+    pointer-events: none !important;
     transform-origin: center center;
     transform: translate(-50%, -50%);
 }
