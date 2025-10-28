@@ -15,6 +15,7 @@ main {
     transform-style: preserve-3d;   /* allow children to use translateZ */
     contain: layout paint;          /* reduce invalidation scope */
     image-rendering: auto;          /* avoids shimmering in some browsers */
+    perspective-origin: 50% 50%;
 }
 
 /* Prevent element corners from showing */
@@ -38,17 +39,18 @@ main {
     width: 100vw;
     height: 100vh;
     position: absolute;
-     z-index:3;
+     z-index:4;
      top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
+    opacity: .5 !important;
 }
 
 .mountain-4 {
     width: 1300px;
     position: absolute;
     top: calc(50% - 50px);
-    left: calc(50% - 200px);
+    left: calc(50% - 130px);
     z-index: 2;
 }
 
@@ -58,15 +60,16 @@ main {
     position: absolute;
     top: calc(50% - 90px);
     left: calc(50%);
-    z-index: 2;
-    color: var(--gold-1);
+    z-index: 4;
+    fill: var(--gold-1);
+    mix-blend-mode: overlay;
 }
 
 .mountain-3 {
     width: 600px;
     position: absolute;
     top: calc(50% + 50px);
-    left: calc(50% - 200px);
+    left: calc(50% - 100px);
     z-index: 3;
 }
 
@@ -101,8 +104,9 @@ main {
     width: 900px;
     position: absolute;
     top: calc(50% - 40px);
-    left: calc(50% + 600px);
+    left: calc(50% + 530px);
     z-index: 5;
+    filter: brightness(.6);
 }
 
 .fog-4 {
@@ -128,12 +132,12 @@ main {
     width: 1000px;
     position: absolute;
     top: calc(50% + 50px);
-    left: calc(50% - 450px);
+    left: calc(50% - 320px);
     z-index: 7;
 }
 
 .text {
-    z-index: 2;
+    z-index: 3;
     position: absolute;
     top: calc(50% - 20px);
     left: 50%;
@@ -144,13 +148,15 @@ main {
     font-size: clamp(1.5rem, 6vw, 4rem);
     pointer-events: auto;
     white-space: nowrap;
+    mix-blend-mode: overlay;
+
 }
 
 .fog-0 {
     width: 600px;
     position: absolute;
     top: calc(50% + 50px);
-    left: calc(50% - 670px);
+    left: calc(50% - 520px);
     /* background-color: red; */
     z-index: 8;
 }
@@ -159,7 +165,7 @@ main {
     width: 1000px;
     position: absolute;
     top: calc(50% + 150px);
-    left: calc(50% - 480px);
+    left: calc(50% - 420px);
     z-index: 9;
 }
 
@@ -195,8 +201,8 @@ main {
 .fg-img-2 {
     width: 2150px;
     position: absolute;
-    top: calc(50% + 200px);
-    left: calc(50%);
+    top: calc(50% + 270px);
+    left: calc(50% - 100px);
     z-index: 13;
 
 }
@@ -275,7 +281,15 @@ main {
     pointer-events: none !important;
     transform-origin: center center;
     transform: translate(-50%, -50%);
+  transform-style: preserve-3d;
+  will-change: transform;
+  backface-visibility: hidden;
 }
+
+/* Darken parallax layers except fogs and foregrounds */
+/* .parallax:not(.fog-2):not(.fog-4):not(.fog-1):not(.fog-0):not(.fog-water):not(.fog-fg):not(.fog-img):not(.fog-img-2):not(.fg-img):not(.fg-img-2):not(.water):not(.logo):not(.text):not(.shine-2):not(#canv):not(.leaf-scene) {
+    filter: brightness(0.8);
+} */
 
 /* Initial animation states */
 .parallax {

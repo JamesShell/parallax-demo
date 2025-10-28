@@ -41,8 +41,8 @@
   function calculateScreenScale(width = window.innerWidth) {
     // Keep numbers mild to avoid pixel snapping on dense screens
     if (width >= 1920) return 1.2; // Large screens
-    if (width >= 1440) return 0.975; // Desktop
-    if (width >= 1024) return 0.9; // Laptop
+    if (width >= 1440) return 0.95; // Desktop
+    if (width >= 1024) return 0.875; // Laptop
     if (width >= 768)  return 0.85; // Tablet
     return 0.8; // Mobile
   }
@@ -79,13 +79,18 @@
 
   // --- Parallax update loop ---
   function applyParallax() {
-    if (!state.animationsComplete || RMM) return;
+    if (RMM) return;
     const halfW = window.innerWidth / 2;
     const halfH = window.innerHeight / 2;
 
     // Build transforms per element without additional style reads
     for (const c of cache) {
       const { el, sx, sy, sz, left, side } = c;
+
+      // Skip if element is currently being animated by GSAP
+      if (!state.animationsComplete && el.classList.contains('gsap-animating')) {
+        continue;
+      }
 
       // translate relative to screen center
       const tx = -(state.x * sx);
@@ -110,16 +115,15 @@
     applyParallax();
   }
 
-  // Pointer moves: cheaper than mousemove on some UAs, supports touch/pen
-  // We only mark dirty; rendering happens in rAF for consistency.
-  const onPointerMove = (e) => {
-    // Use primary pointer only
-    if (e.isPrimary === false) return;
-    state.cursorX = e.clientX;
-    state.x = e.clientX - window.innerWidth / 2;
-    state.y = e.clientY - window.innerHeight / 2;
+  // Update parallax based on bird flock center position
+  window.updateParallaxFromBirds = function(flockCenterX, flockCenterY) {
+    // Convert bird canvas coordinates to screen coordinates
+    // Birds are centered around canvas center, we need to translate to parallax coordinates
+    state.cursorX = (window.innerWidth / 2) + flockCenterX;
+    state.x = flockCenterX;
+    state.y = -flockCenterY; // Invert Y since bird canvas is flipped
     state.needsUpdate = true;
-    // Coalesce multiple pointer events in same frame
+    // Coalesce multiple updates in same frame
     if (state.rafId == null) {
       state.rafId = requestAnimationFrame(() => {
         state.rafId = null;
@@ -127,9 +131,11 @@
       });
     }
   };
-  window.addEventListener('pointermove', onPointerMove, { passive: true });
 
-  // Initial paint
+  // Initialize parallax with birds centered (x=0, y=0)
+  state.cursorX = window.innerWidth / 2;
+  state.x = 0;
+  state.y = 0;
   state.needsUpdate = true;
   updateFrame();
 
@@ -156,13 +162,13 @@
         ['.ui-overlay', { opacity: 0 }],
         ['.bg-img', { opacity: 0 }],
         ['#canv', { opacity: 0 }],
-        ['.water', { opacity: 0, y: 600 }],
-        ['.mountain-0', { opacity: 0, y: 800 }],
-        ['.mountain-3', { opacity: 0, y: 800 }],
-        ['.mountain-4', { opacity: 0, y: 800 }],
-        ['.mountain-5', { opacity: 0, y: 800 }],
-        ['.mountain-1', { opacity: 0, x: -1000 }],
-        ['.mountain-2', { opacity: 0, x: 1000 }],
+        ['.water', { opacity: .5, y: 200 }],
+        ['.mountain-0', { opacity: 0, y: 1600 }],
+        ['.mountain-3', { opacity: 0, y: 600 }],
+        ['.mountain-4', { opacity: 0, y: 200 }],
+        ['.mountain-5', { opacity: 0, y: 1200 }],
+        ['.mountain-1', { opacity: 0, x: -500 }],
+        ['.mountain-2', { opacity: 0, x: 500 }],
         ['.logo', { opacity: 0, scale: 0 }],
         ['.text', { opacity: 0, scale: 0.5, y: 50 }],
         ['.shine-2', { opacity: 0 }],
@@ -179,14 +185,31 @@
       ];
       sets.forEach(([sel, conf]) => gs.set(sel, conf));
 
+      // Mark elements that will be animated by GSAP
+      const gsapElements = ['.bg-img', '.water', '.mountain-4', '.mountain-3', '.mountain-2',
+                            '.mountain-5', '.mountain-1', '.mountain-0', '.shine-2', '.fog-4',
+                            '.fog-2', '.fog-1', '.fog-0', '.logo', '.text', '.fog-water',
+                            '.fog-fg', '.fg-img-2', '.fg-img', '.fog-img', '.fog-img-2'];
+
+      gsapElements.forEach(sel => {
+        const el = document.querySelector(sel);
+        if (el) el.classList.add('gsap-animating');
+      });
+
       const tl = gs.timeline({ defaults: { ease: 'power2.inOut' } });
 
-      tl.to('.bg-img', { opacity: 1, duration: 1.8, ease: 'power1.inOut' }, 1)
+      tl.to('.bg-img', {
+          opacity: 1,
+          duration: 1.8,
+          ease: 'power1.inOut',
+          onComplete: () => { document.querySelector('.bg-img')?.classList.remove('gsap-animating'); }
+        }, 1)
         .to('.water', {
           opacity: 1,
           y: 0,
           duration: 1.5,
-          ease: 'power2.out'
+          ease: 'power2.out',
+          onComplete: () => { document.querySelector('.water')?.classList.remove('gsap-animating'); }
         }, 1.2)
         .to('#canv', {
           opacity: 1,
@@ -199,35 +222,135 @@
             }
           }
         }, 2.7)
-        .to('.mountain-4', { opacity: 1, y: 0, duration: 1.2, clearProps: 'y,transform' }, 1.5)
-        .to('.mountain-3', { opacity: 1, y: 0, duration: 1.3, clearProps: 'y,transform' }, 1.7)
-        .to('.mountain-2', { opacity: 1, x: 0, duration: 3, clearProps: 'transform' }, 1.8)
-        .to('.mountain-5', { opacity: 1, y: 0, duration: 1.4, clearProps: 'y,transform' }, 1.9)
-        .to('.mountain-1', { opacity: 1, x: 0, duration: 3, clearProps: 'transform' }, 2)
-        .to('.mountain-0', { opacity: 1, y: 0, duration: 1.5, clearProps: 'y,transform' }, 2.3)
-        .to('.shine-2', { opacity: 1, duration: 1.5, ease: 'power1.inOut' }, 2)
-        .to('.fog-4', { opacity: 1, duration: 1.2, ease: 'power1.inOut' }, 2.1)
-        .to('.fog-2', { opacity: 1, duration: 1.2, ease: 'power1.inOut' }, 2.2)
-        .to('.fog-1', { opacity: 1, duration: 1.2, ease: 'power1.inOut' }, 2.4)
-        .to('.fog-0', { opacity: 1, duration: 1.2, ease: 'power1.inOut' }, 2.8)
-        .to('.logo', { opacity: 1, scale: 1, rotation: 0, duration: 1, ease: 'back.out(1.2)' }, 3)
-        .to('.text', { opacity: 1, scale: 1, y: 0, duration: 1, ease: 'back.out(1.1)' }, 3.2)
-        .to('.fog-water', { opacity: 1, duration: 1.3, ease: 'power1.inOut' }, 3.4)
-        .to('.fog-fg', { opacity: 1, duration: 1.3, ease: 'power1.inOut' }, 3.6)
-        .to('.fg-img-2', { opacity: 1, scale: 1, duration: 2.5 }, 3.8)
-        .to('.fg-img', { opacity: 1, scale: 1, duration: 2.5 }, 4)
-        .to('.fog-img', { opacity: 1, scale: 1, duration: 1.5 }, 4.2)
-        .to('.fog-img-2', { opacity: 1, scale: 1, duration: 1.5 }, 4.4)
+        .to('.mountain-4', {
+          opacity: 1,
+          y: 0,
+          duration: 1.2,
+          onComplete: () => { document.querySelector('.mountain-4')?.classList.remove('gsap-animating'); }
+        }, 1.5)
+        .to('.mountain-3', {
+          opacity: 1,
+          y: 0,
+          duration: 1.3,
+          onComplete: () => { document.querySelector('.mountain-3')?.classList.remove('gsap-animating'); }
+        }, 1.7)
+        .to('.mountain-2', {
+          opacity: 1,
+          x: 0,
+          duration: 3,
+          onComplete: () => { document.querySelector('.mountain-2')?.classList.remove('gsap-animating'); }
+        }, 1.8)
+        .to('.mountain-5', {
+          opacity: 1,
+          y: 0,
+          duration: 1.4,
+          onComplete: () => { document.querySelector('.mountain-5')?.classList.remove('gsap-animating'); }
+        }, 1.9)
+        .to('.mountain-1', {
+          opacity: 1,
+          x: 0,
+          duration: 3,
+          onComplete: () => { document.querySelector('.mountain-1')?.classList.remove('gsap-animating'); }
+        }, 2)
+        .to('.mountain-0', {
+          opacity: 1,
+          y: 0,
+          duration: 1.5,
+          onComplete: () => { document.querySelector('.mountain-0')?.classList.remove('gsap-animating'); }
+        }, 2.3)
+        .to('.shine-2', {
+          opacity: 1,
+          duration: 1.5,
+          ease: 'power1.inOut',
+          onComplete: () => { document.querySelector('.shine-2')?.classList.remove('gsap-animating'); }
+        }, 2)
+        .to('.fog-4', {
+          opacity: 1,
+          duration: 1.2,
+          ease: 'power1.inOut',
+          onComplete: () => { document.querySelector('.fog-4')?.classList.remove('gsap-animating'); }
+        }, 2.1)
+        .to('.fog-2', {
+          opacity: 1,
+          duration: 1.2,
+          ease: 'power1.inOut',
+          onComplete: () => { document.querySelector('.fog-2')?.classList.remove('gsap-animating'); }
+        }, 2.2)
+        .to('.fog-1', {
+          opacity: 1,
+          duration: 1.2,
+          ease: 'power1.inOut',
+          onComplete: () => { document.querySelector('.fog-1')?.classList.remove('gsap-animating'); }
+        }, 2.4)
+        .to('.fog-0', {
+          opacity: 1,
+          duration: 1.2,
+          ease: 'power1.inOut',
+          onComplete: () => { document.querySelector('.fog-0')?.classList.remove('gsap-animating'); }
+        }, 2.8)
+        .to('.logo', {
+          opacity: 1,
+          scale: 1,
+          rotation: 0,
+          duration: 1,
+          ease: 'back.out(1.2)',
+          onComplete: () => { document.querySelector('.logo')?.classList.remove('gsap-animating'); }
+        }, 3)
+        .to('.text', {
+          opacity: 1,
+          scale: 1,
+          y: 0,
+          duration: 1,
+          ease: 'back.out(1.1)',
+          onComplete: () => { document.querySelector('.text')?.classList.remove('gsap-animating'); }
+        }, 3.2)
+        .to('.fog-water', {
+          opacity: 1,
+          duration: 1.3,
+          ease: 'power1.inOut',
+          onComplete: () => { document.querySelector('.fog-water')?.classList.remove('gsap-animating'); }
+        }, 3.4)
+        .to('.fog-fg', {
+          opacity: 1,
+          duration: 1.3,
+          ease: 'power1.inOut',
+          onComplete: () => { document.querySelector('.fog-fg')?.classList.remove('gsap-animating'); }
+        }, 3.6)
+        .to('.fg-img-2', {
+          opacity: 1,
+          scale: 1,
+          duration: 2.5,
+          onComplete: () => { document.querySelector('.fg-img-2')?.classList.remove('gsap-animating'); }
+        }, 3.8)
+        .to('.fg-img', {
+          opacity: 1,
+          scale: 1,
+          duration: 2.5,
+          onComplete: () => { document.querySelector('.fg-img')?.classList.remove('gsap-animating'); }
+        }, 4)
+        .to('.fog-img', {
+          opacity: 1,
+          scale: 1,
+          duration: 1.5,
+          onComplete: () => { document.querySelector('.fog-img')?.classList.remove('gsap-animating'); }
+        }, 4.2)
+        .to('.fog-img-2', {
+          opacity: 1,
+          scale: 1,
+          duration: 1.5,
+          onComplete: () => { document.querySelector('.fog-img-2')?.classList.remove('gsap-animating'); }
+        }, 4.4)
         .to('.ui-overlay', {
           opacity: 1,
           duration: 1.5,
           ease: 'power1.inOut',
           onComplete: () => {
-            // Enable parallax after reveal to avoid transform tug-of-war
+            // Mark animations as complete
             parallaxEls.forEach(el => el.classList.add('animated'));
             state.animationsComplete = true;
             state.needsUpdate = true;
             updateFrame();
+
             // Start leaf animation after reveal completes
             if (window.startLeafAnimation) {
               window.startLeafAnimation();
@@ -352,7 +475,7 @@ Bird.obj = Bird.def(
   function() {
     this.vtr = new Bird.Vtr(),
       this.accel, this.width = 600, this.height = 600, this.depth = 300, this.ept, this.area = 200,
-      this.msp = 4, this.mfrc = 0.1, this.coll = false;
+      this.msp = 3, this.mfrc = 0.09, this.coll = false;
     this.pos = new Bird.Vtr();
     this.vel = new Bird.Vtr();
     this.accel = new Bird.Vtr();
@@ -882,12 +1005,13 @@ function initBirds() {
   var b = [];
   for (var i = 0; i < 60; i++) {
     _b = b[i] = new Bird.obj();
-    _b.pos.x = Math.random() * 800 - 400;
-    _b.pos.y = Math.random() * 800 - 400;
-    _b.pos.z = Math.random() * 800 - 400;
-    _b.vel.x = Math.random() * 2 - 1;
-    _b.vel.y = Math.random() * 2 - 1;
-    _b.vel.z = Math.random() * 2 - 1;
+    // Start birds closer to center for initial reveal
+    _b.pos.x = Math.random() * 400 - 200;
+    _b.pos.y = Math.random() * 400 - 200;
+    _b.pos.z = Math.random() * 400 - 200;
+    _b.vel.x = Math.random() * 1.8 - 0.8;
+    _b.vel.y = Math.random() * 1.8 - 0.8;
+    _b.vel.z = Math.random() * 1.8 - 0.8;
     _b._coll(true);
     _b.param(400, 400, 800);
     _b.mouseTarget = mouseTarget; // Store reference to mouse target
@@ -905,16 +1029,23 @@ function initBirds() {
   }
 
   function draw() {
-    // Apply parallax offset to bird canvas
-    var parallaxOffsetX = 0;
-    var parallaxOffsetY = 0;
+    // Follow just the first bird for better performance
+    var leadBirdX = b[0] ? b[0].pos.x : 0;
+    var leadBirdY = b[0] ? b[0].pos.y : 0;
+
+    // Update parallax based on lead bird
+    if (window.updateParallaxFromBirds) {
+      window.updateParallaxFromBirds(leadBirdX, leadBirdY);
+    }
+
+    // Update leaf parallax to match lead bird
     if (window.leafParallax) {
-      parallaxOffsetX = window.leafParallax.x * 0.015; // Subtle parallax effect
-      parallaxOffsetY = window.leafParallax.y * 0.015;
+      window.leafParallax.x = leadBirdX;
+      window.leafParallax.y = leadBirdY;
     }
 
     Bird.$.setTransform(1, 0, 0, 1, 0, 0);
-    Bird.$.translate(Bird.canv.w / 2 + parallaxOffsetX, Bird.canv.h / 2 + parallaxOffsetY);
+    Bird.$.translate(Bird.canv.w / 2, Bird.canv.h / 2);
     Bird.$.clearRect(-Bird.canv.w / 2, -Bird.canv.h / 2, Bird.canv.w, Bird.canv.h);
     Bird.$.scale(1, -1);
     var arr = [];
@@ -1118,15 +1249,8 @@ LeafScene.prototype.render = function() {
   requestAnimationFrame(this.render.bind(this));
 }
 
-// Global parallax tracking for leaves and birds
+// Global parallax tracking for leaves (updated by bird flock)
 window.leafParallax = { x: 0, y: 0 };
-
-// Track mouse for parallax effect
-window.addEventListener('pointermove', function(e) {
-  if (e.isPrimary === false) return;
-  window.leafParallax.x = e.clientX - window.innerWidth / 2;
-  window.leafParallax.y = e.clientY - window.innerHeight / 2;
-}, { passive: true });
 
 // start up leaf scene - will be triggered after GSAP animation
 window.startLeafAnimation = function() {
