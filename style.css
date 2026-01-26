@@ -15,7 +15,6 @@ main {
     transform-style: preserve-3d;   /* allow children to use translateZ */
     contain: layout paint;          /* reduce invalidation scope */
     image-rendering: auto;          /* avoids shimmering in some browsers */
-    perspective-origin: 50% 50%;
 }
 
 /* Prevent element corners from showing */
@@ -201,7 +200,7 @@ main {
 .fg-img-2 {
     width: 2150px;
     position: absolute;
-    top: calc(50% + 270px);
+    top: calc(50% + 280px);
     left: calc(50% - 100px);
     z-index: 13;
 
@@ -281,9 +280,6 @@ main {
     pointer-events: none !important;
     transform-origin: center center;
     transform: translate(-50%, -50%);
-  transform-style: preserve-3d;
-  will-change: transform;
-  backface-visibility: hidden;
 }
 
 /* Darken parallax layers except fogs and foregrounds */

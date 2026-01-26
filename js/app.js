@@ -41,9 +41,9 @@
   function calculateScreenScale(width = window.innerWidth) {
     // Keep numbers mild to avoid pixel snapping on dense screens
     if (width >= 1920) return 1.2; // Large screens
-    if (width >= 1440) return 0.95; // Desktop
-    if (width >= 1024) return 0.875; // Laptop
-    if (width >= 768)  return 0.85; // Tablet
+    if (width >= 1440) return 0.975; // Desktop
+    if (width >= 1024) return 0.9; // Laptop
+    if (width >= 768) return 0.85; // Tablet
     return 0.8; // Mobile
   }
   state.screenScale = calculateScreenScale();
@@ -79,18 +79,13 @@
 
   // --- Parallax update loop ---
   function applyParallax() {
-    if (RMM) return;
+    if (!state.animationsComplete || RMM) return;
     const halfW = window.innerWidth / 2;
     const halfH = window.innerHeight / 2;
 
     // Build transforms per element without additional style reads
     for (const c of cache) {
       const { el, sx, sy, sz, left, side } = c;
-
-      // Skip if element is currently being animated by GSAP
-      if (!state.animationsComplete && el.classList.contains('gsap-animating')) {
-        continue;
-      }
 
       // translate relative to screen center
       const tx = -(state.x * sx);
@@ -115,15 +110,16 @@
     applyParallax();
   }
 
-  // Update parallax based on bird flock center position
-  window.updateParallaxFromBirds = function(flockCenterX, flockCenterY) {
-    // Convert bird canvas coordinates to screen coordinates
-    // Birds are centered around canvas center, we need to translate to parallax coordinates
-    state.cursorX = (window.innerWidth / 2) + flockCenterX;
-    state.x = flockCenterX;
-    state.y = -flockCenterY; // Invert Y since bird canvas is flipped
+  // Pointer moves: cheaper than mousemove on some UAs, supports touch/pen
+  // We only mark dirty; rendering happens in rAF for consistency.
+  const onPointerMove = (e) => {
+    // Use primary pointer only
+    if (e.isPrimary === false) return;
+    state.cursorX = e.clientX;
+    state.x = e.clientX - window.innerWidth / 2;
+    state.y = e.clientY - window.innerHeight / 2;
     state.needsUpdate = true;
-    // Coalesce multiple updates in same frame
+    // Coalesce multiple pointer events in same frame
     if (state.rafId == null) {
       state.rafId = requestAnimationFrame(() => {
         state.rafId = null;
@@ -131,11 +127,9 @@
       });
     }
   };
+  window.addEventListener('pointermove', onPointerMove, { passive: true });
 
-  // Initialize parallax with birds centered (x=0, y=0)
-  state.cursorX = window.innerWidth / 2;
-  state.x = 0;
-  state.y = 0;
+  // Initial paint
   state.needsUpdate = true;
   updateFrame();
 
@@ -162,15 +156,13 @@
         ['.ui-overlay', { opacity: 0 }],
         ['.bg-img', { opacity: 0 }],
         ['#canv', { opacity: 0 }],
-        ['.water', { opacity: .5, y: 200 }],
-        ['.mountain-0', { opacity: 0, y: 1600 }],
-        ['.mountain-3', { opacity: 0, y: 600 }],
-        ['.mountain-4', { opacity: 0, y: 200 }],
-        ['.mountain-5', { opacity: 0, y: 1200 }],
-        ['.mountain-1', { opacity: 0, x: -500 }],
-        ['.mountain-2', { opacity: 0, x: 500 }],
-        ['.logo', { opacity: 0, scale: 0 }],
-        ['.text', { opacity: 0, scale: 0.5, y: 50 }],
+        ['.water', { opacity: 0, y: 600 }],
+        ['.mountain-0', { opacity: 0, y: 800 }],
+        ['.mountain-3', { opacity: 0, y: 800 }],
+        ['.mountain-4', { opacity: 0, y: 800 }],
+        ['.mountain-5', { opacity: 0, y: 800 }],
+        ['.mountain-1', { opacity: 0, x: -1000 }],
+        ['.mountain-2', { opacity: 0, x: 1000 }],
         ['.shine-2', { opacity: 0 }],
         ['.fog-0', { opacity: 0 }],
         ['.fog-1', { opacity: 0 }],
@@ -185,31 +177,14 @@
       ];
       sets.forEach(([sel, conf]) => gs.set(sel, conf));
 
-      // Mark elements that will be animated by GSAP
-      const gsapElements = ['.bg-img', '.water', '.mountain-4', '.mountain-3', '.mountain-2',
-                            '.mountain-5', '.mountain-1', '.mountain-0', '.shine-2', '.fog-4',
-                            '.fog-2', '.fog-1', '.fog-0', '.logo', '.text', '.fog-water',
-                            '.fog-fg', '.fg-img-2', '.fg-img', '.fog-img', '.fog-img-2'];
-
-      gsapElements.forEach(sel => {
-        const el = document.querySelector(sel);
-        if (el) el.classList.add('gsap-animating');
-      });
-
       const tl = gs.timeline({ defaults: { ease: 'power2.inOut' } });
 
-      tl.to('.bg-img', {
-          opacity: 1,
-          duration: 1.8,
-          ease: 'power1.inOut',
-          onComplete: () => { document.querySelector('.bg-img')?.classList.remove('gsap-animating'); }
-        }, 1)
+      tl.to('.bg-img', { opacity: 1, duration: 1.8, ease: 'power1.inOut' }, 1)
         .to('.water', {
           opacity: 1,
           y: 0,
           duration: 1.5,
-          ease: 'power2.out',
-          onComplete: () => { document.querySelector('.water')?.classList.remove('gsap-animating'); }
+          ease: 'power2.out'
         }, 1.2)
         .to('#canv', {
           opacity: 1,
@@ -222,141 +197,34 @@
             }
           }
         }, 2.7)
-        .to('.mountain-4', {
-          opacity: 1,
-          y: 0,
-          duration: 1.2,
-          onComplete: () => { document.querySelector('.mountain-4')?.classList.remove('gsap-animating'); }
-        }, 1.5)
-        .to('.mountain-3', {
-          opacity: 1,
-          y: 0,
-          duration: 1.3,
-          onComplete: () => { document.querySelector('.mountain-3')?.classList.remove('gsap-animating'); }
-        }, 1.7)
-        .to('.mountain-2', {
-          opacity: 1,
-          x: 0,
-          duration: 3,
-          onComplete: () => { document.querySelector('.mountain-2')?.classList.remove('gsap-animating'); }
-        }, 1.8)
-        .to('.mountain-5', {
-          opacity: 1,
-          y: 0,
-          duration: 1.4,
-          onComplete: () => { document.querySelector('.mountain-5')?.classList.remove('gsap-animating'); }
-        }, 1.9)
-        .to('.mountain-1', {
-          opacity: 1,
-          x: 0,
-          duration: 3,
-          onComplete: () => { document.querySelector('.mountain-1')?.classList.remove('gsap-animating'); }
-        }, 2)
-        .to('.mountain-0', {
-          opacity: 1,
-          y: 0,
-          duration: 1.5,
-          onComplete: () => { document.querySelector('.mountain-0')?.classList.remove('gsap-animating'); }
-        }, 2.3)
-        .to('.shine-2', {
-          opacity: 1,
-          duration: 1.5,
-          ease: 'power1.inOut',
-          onComplete: () => { document.querySelector('.shine-2')?.classList.remove('gsap-animating'); }
-        }, 2)
-        .to('.fog-4', {
-          opacity: 1,
-          duration: 1.2,
-          ease: 'power1.inOut',
-          onComplete: () => { document.querySelector('.fog-4')?.classList.remove('gsap-animating'); }
-        }, 2.1)
-        .to('.fog-2', {
-          opacity: 1,
-          duration: 1.2,
-          ease: 'power1.inOut',
-          onComplete: () => { document.querySelector('.fog-2')?.classList.remove('gsap-animating'); }
-        }, 2.2)
-        .to('.fog-1', {
-          opacity: 1,
-          duration: 1.2,
-          ease: 'power1.inOut',
-          onComplete: () => { document.querySelector('.fog-1')?.classList.remove('gsap-animating'); }
-        }, 2.4)
-        .to('.fog-0', {
-          opacity: 1,
-          duration: 1.2,
-          ease: 'power1.inOut',
-          onComplete: () => { document.querySelector('.fog-0')?.classList.remove('gsap-animating'); }
-        }, 2.8)
-        .to('.logo', {
-          opacity: 1,
-          scale: 1,
-          rotation: 0,
-          duration: 1,
-          ease: 'back.out(1.2)',
-          onComplete: () => { document.querySelector('.logo')?.classList.remove('gsap-animating'); }
-        }, 3)
-        .to('.text', {
-          opacity: 1,
-          scale: 1,
-          y: 0,
-          duration: 1,
-          ease: 'back.out(1.1)',
-          onComplete: () => { document.querySelector('.text')?.classList.remove('gsap-animating'); }
-        }, 3.2)
-        .to('.fog-water', {
-          opacity: 1,
-          duration: 1.3,
-          ease: 'power1.inOut',
-          onComplete: () => { document.querySelector('.fog-water')?.classList.remove('gsap-animating'); }
-        }, 3.4)
-        .to('.fog-fg', {
-          opacity: 1,
-          duration: 1.3,
-          ease: 'power1.inOut',
-          onComplete: () => { document.querySelector('.fog-fg')?.classList.remove('gsap-animating'); }
-        }, 3.6)
-        .to('.fg-img-2', {
-          opacity: 1,
-          scale: 1,
-          duration: 2.5,
-          onComplete: () => { document.querySelector('.fg-img-2')?.classList.remove('gsap-animating'); }
-        }, 3.8)
-        .to('.fg-img', {
-          opacity: 1,
-          scale: 1,
-          duration: 2.5,
-          onComplete: () => { document.querySelector('.fg-img')?.classList.remove('gsap-animating'); }
-        }, 4)
-        .to('.fog-img', {
-          opacity: 1,
-          scale: 1,
-          duration: 1.5,
-          onComplete: () => { document.querySelector('.fog-img')?.classList.remove('gsap-animating'); }
-        }, 4.2)
+        .to('.mountain-4', { opacity: 1, y: 0, duration: 1.2, clearProps: 'y,transform' }, 1.5)
+        .to('.mountain-3', { opacity: 1, y: 0, duration: 1.3, clearProps: 'y,transform' }, 1.7)
+        .to('.mountain-2', { opacity: 1, x: 0, duration: 3, clearProps: 'transform' }, 1.8)
+        .to('.mountain-5', { opacity: 1, y: 0, duration: 1.4, clearProps: 'y,transform' }, 1.9)
+        .to('.mountain-1', { opacity: 1, x: 0, duration: 3, clearProps: 'transform' }, 2)
+        .to('.mountain-0', { opacity: 1, y: 0, duration: 1.5, clearProps: 'y,transform' }, 2.3)
+        .to('.shine-2', { opacity: 1, duration: 1.5, ease: 'power1.inOut' }, 2)
+        .to('.fog-water', { opacity: 1, duration: 1.3, ease: 'power1.inOut' }, 3.4)
+        .to('.fog-fg', { opacity: 1, duration: 1.3, ease: 'power1.inOut' }, 3.6)
+        .to('.fg-img-2', { opacity: 1, scale: 1, duration: 2.5 }, 3.8)
+        .to('.fg-img', { opacity: 1, scale: 1, duration: 2.5 }, 4)
+        .to('.fog-img', { opacity: 1, scale: 1, duration: 1.5 }, 4.2)
         .to('.fog-img-2', {
           opacity: 1,
           scale: 1,
           duration: 1.5,
-          onComplete: () => { document.querySelector('.fog-img-2')?.classList.remove('gsap-animating'); }
-        }, 4.4)
-        .to('.ui-overlay', {
-          opacity: 1,
-          duration: 1.5,
-          ease: 'power1.inOut',
           onComplete: () => {
-            // Mark animations as complete
+            // Enable parallax after reveal to avoid transform tug-of-war
             parallaxEls.forEach(el => el.classList.add('animated'));
             state.animationsComplete = true;
             state.needsUpdate = true;
             updateFrame();
-
             // Start leaf animation after reveal completes
             if (window.startLeafAnimation) {
               window.startLeafAnimation();
             }
           }
-        }, 4.6);
+        }, 4.4);
     });
   } else {
     // If GSAP not present, enable parallax right away
@@ -365,87 +233,17 @@
     updateFrame();
   }
 
-  // --- UI Interactions (defensively coded) ---
-  document.addEventListener('DOMContentLoaded', () => {
-    const sideMenu = $('.side-menu');
-    const menuToggleBtn = $('.menu-toggle-btn');
-    if (menuToggleBtn && sideMenu) {
-      menuToggleBtn.addEventListener('click', () => {
-        menuToggleBtn.classList.toggle('active');
-        sideMenu.classList.toggle('active');
-      });
-    }
-
-    const sideMenuItems = $$('.side-menu-item');
-    if (sideMenu && sideMenuItems.length) {
-      sideMenuItems.forEach(item => {
-        item.addEventListener('click', () => {
-          sideMenu.classList.remove('active');
-          menuToggleBtn?.classList.remove('active');
-        });
-      });
-    }
-
-    const uiToggleBtn = $('.ui-toggle-btn');
-    const uiOverlay = $('.ui-overlay');
-    if (uiToggleBtn && uiOverlay) {
-      uiToggleBtn.addEventListener('click', () => {
-        uiToggleBtn.classList.toggle('hidden');
-        uiOverlay.classList.toggle('hidden');
-      });
-    }
-
-    const watchBtn = $('.watch-btn');
-    watchBtn?.addEventListener('click', () => {
-      // Hook your player logic here
-      console.log('Watch Movie clicked');
-    });
-
-    const discoverBtn = $('.discover-btn');
-    discoverBtn?.addEventListener('click', () => {
-      console.log('Discover clicked');
-    });
-
-    // Progress bar
-    const progressBar = $('.page-progress-bar');
-    const navItems = $$('.nav-item');
-    const totalPages = 4;
-
-    const updateProgress = (pageNumber) => {
-      if (!progressBar) return;
-      const percentage = Math.max(0, Math.min(100, (pageNumber / totalPages) * 100));
-      progressBar.style.height = `${percentage}%`;
-      progressBar.ariaValueNow = String(Math.round(percentage));
-    };
-
-    navItems.forEach((item, index) => {
-      const link = item.querySelector('a');
-      if (!link) return;
-      link.addEventListener('click', (e) => {
-        e.preventDefault();
-        navItems.forEach(n => n.classList.remove('active'));
-        item.classList.add('active');
-        updateProgress(index + 1);
-        const href = link.getAttribute('href');
-        if (href && href !== '#') {
-          // Optional: programmatic navigation / scrollIntoView here
-          console.log('Navigating to:', href);
-        }
-      });
-    });
-
-    updateProgress(1);
-  });
+  // Menu and UI interactions removed - pure parallax view
 })();
 
 
 var Bird = {
-  def: function(n, m, s) {
+  def: function (n, m, s) {
     if (m) this.e(n.prototype, m);
     if (s) this.e(n, s);
     return n;
   },
-  e: function(o, p) {
+  e: function (o, p) {
     for (prop in p) o[prop] = p[prop];
     return o;
   },
@@ -472,160 +270,163 @@ var Bird = {
   }
 }
 Bird.obj = Bird.def(
-  function() {
+  function () {
     this.vtr = new Bird.Vtr(),
       this.accel, this.width = 600, this.height = 600, this.depth = 300, this.ept, this.area = 200,
-      this.msp = 3, this.mfrc = 0.09, this.coll = false;
+      this.msp = 4, this.mfrc = 0.1, this.coll = false;
     this.pos = new Bird.Vtr();
     this.vel = new Bird.Vtr();
     this.accel = new Bird.Vtr();
   }, {
 
-    _coll: function(value) {
-      this.coll = value;
-    },
-    param: function(w, h, dth) {
-      this.width = w;
-      this.height = h;
-      this.depth = dth;
-    },
-    run: function(b) {
-      if (this.coll) {
-        this.vtr.set(-this.width, this.pos.y, this.pos.z);
-        this.vtr = this.detect(this.vtr);
-        this.vtr.scale(5);
-        this.accel.add(this.vtr);
-        this.vtr.set(this.width, this.pos.y, this.pos.z);
-        this.vtr = this.detect(this.vtr);
-        this.vtr.scale(5);
-        this.accel.add(this.vtr);
-        this.vtr.set(this.pos.x, -this.height, this.pos.z);
-        this.vtr = this.detect(this.vtr);
-        this.vtr.scale(5);
-        this.accel.add(this.vtr);
-        this.vtr.set(this.pos.x, this.height, this.pos.z);
-        this.vtr = this.detect(this.vtr);
-        this.vtr.scale(5);
-        this.accel.add(this.vtr);
-        this.vtr.set(this.pos.x, this.pos.y, -this.depth);
-        this.vtr = this.detect(this.vtr);
-        this.vtr.scale(5);
-        this.accel.add(this.vtr);
-        this.vtr.set(this.pos.x, this.pos.y, this.depth);
-        this.vtr = this.detect(this.vtr);
-        this.vtr.scale(5);
-        this.accel.add(this.vtr);
-      }
-      if (Math.random() > 0.5) {
-        this.fly(b);
-      }
-      this.move();
-    },
-    fly: function(b) {
-      // Only follow mouse if it's inside the canvas
-      if (this.mouseInside && this.mouseInside() && this.mouseTarget) {
-        this.accel.add(this.meet(this.mouseTarget, 0.03));
-      }
-      this.accel.add(this.line(b));
-      this.accel.add(this.togeth(b));
-      this.accel.add(this.apart(b));
-    },
-    move: function() {
-      this.vel.add(this.accel);
-      var l = this.vel.len();
-      if (l > this.msp) {
-        this.vel.lowscale(l / this.msp);
-      }
-      this.pos.add(this.vel);
-      this.accel.set(0, 0, 0);
-    },
-    detect: function(pt) {
-      var dir = new Bird.Vtr();
-      dir.copy(this.pos);
-      dir.sub(pt);
-      dir.scale(1 / this.pos.dsq(pt));
-      return dir;
-    },
-    rep: function(pt) {
-      var dist = this.pos.dst(pt);if (dist < 150) {
-        var dir = new Bird.Vtr();
-        dir.subv(this.pos, pt);
-        dir.scale(0.5 / dist);
-        this.accel.add(dir);
-      }
-    },
-    meet: function(pt, amt) {
-      var dir = new Bird.Vtr();
-      dir.subv(pt, this.pos);
-      dir.scale(amt);
-      return dir;
-    },
-    line: function(b) {
-      var _b, totvel = new Bird.Vtr(),
-        cnt = 0;
-      for (var i = 0, il = b.length; i < il; i++) {
-        if (Math.random() > 0.6) continue;
-        _b = b[i];
-        var dist = _b.pos.dst(this.pos);
-        if (dist > 0 && dist <= this.area) {
-          totvel.add(_b.vel);
-          cnt++;
-        }
-      }
-      if (cnt > 0) {
-        totvel.lowscale(cnt);
-        var v = totvel.len();
-        if (v > this.mfrc) {
-          totvel.lowscale( v / this.mfrc);
-        }
-      }
-      return totvel;
-    },
-    togeth: function(b) {
-      var _b, dist,
-        plus = new Bird.Vtr(),
-        dir = new Bird.Vtr(),
-        cnt = 0;
-      for (var i = 0, il = b.length; i < il; i++) {
-        if (Math.random() > 0.6) continue;
-        _b = b[i];
-        dist = _b.pos.dst(this.pos);
-        if (dist > 0 && dist <= this.area) {
-          plus.add(_b.pos);
-          cnt++;
-        }
-      }
-      if (cnt > 0) {
-        plus.lowscale(cnt);
-      }
-      dir.subv(plus, this.pos);
-      var l = dir.len();
-      if (l > this.mfrc) {
-        dir.lowscale(l / this.mfrc);
-      }
-      return dir;
-    },
-    apart: function(b) {
-      var _b, dist,
-        plus = new Bird.Vtr(),
-        rep = new Bird.Vtr();
-      for (var i = 0, il = b.length; i < il; i++) {
-        if (Math.random() > 0.6) continue;
-        _b = b[i];
-        dist = _b.pos.dst(this.pos);
-        if (dist > 0 && dist <= this.area) {
-          rep.subv(this.pos, _b.pos);
-          rep.level();
-          rep.lowscale(dist);
-          plus.add(rep);
-        }
-      }
-      return plus;
+  _coll: function (value) {
+    this.coll = value;
+  },
+  param: function (w, h, dth) {
+    this.width = w;
+    this.height = h;
+    this.depth = dth;
+  },
+  run: function (b) {
+    if (this.coll) {
+      this.vtr.set(-this.width, this.pos.y, this.pos.z);
+      this.vtr = this.detect(this.vtr);
+      this.vtr.scale(5);
+      this.accel.add(this.vtr);
+      this.vtr.set(this.width, this.pos.y, this.pos.z);
+      this.vtr = this.detect(this.vtr);
+      this.vtr.scale(5);
+      this.accel.add(this.vtr);
+      this.vtr.set(this.pos.x, -this.height, this.pos.z);
+      this.vtr = this.detect(this.vtr);
+      this.vtr.scale(5);
+      this.accel.add(this.vtr);
+      this.vtr.set(this.pos.x, this.height, this.pos.z);
+      this.vtr = this.detect(this.vtr);
+      this.vtr.scale(5);
+      this.accel.add(this.vtr);
+      this.vtr.set(this.pos.x, this.pos.y, -this.depth);
+      this.vtr = this.detect(this.vtr);
+      this.vtr.scale(5);
+      this.accel.add(this.vtr);
+      this.vtr.set(this.pos.x, this.pos.y, this.depth);
+      this.vtr = this.detect(this.vtr);
+      this.vtr.scale(5);
+      this.accel.add(this.vtr);
     }
+    if (Math.random() > 0.5) {
+      this.fly(b);
+    }
+    this.move();
+  },
+  fly: function (b) {
+    // Birds avoid mouse cursor anywhere on the canvas
+    if (this.mouseTarget) {
+      this.rep(this.mouseTarget);
+    }
+    this.accel.add(this.line(b));
+    this.accel.add(this.togeth(b));
+    this.accel.add(this.apart(b));
+  },
+  move: function () {
+    this.vel.add(this.accel);
+    var l = this.vel.len();
+    if (l > this.msp) {
+      this.vel.lowscale(l / this.msp);
+    }
+    this.pos.add(this.vel);
+    this.accel.set(0, 0, 0);
+  },
+  detect: function (pt) {
+    var dir = new Bird.Vtr();
+    dir.copy(this.pos);
+    dir.sub(pt);
+    dir.scale(1 / this.pos.dsq(pt));
+    return dir;
+  },
+  rep: function (pt) {
+    var dist = this.pos.dst(pt);
+    if (dist < 300) {
+      var dir = new Bird.Vtr();
+      dir.subv(this.pos, pt);
+      // Stronger repulsion that increases as distance decreases
+      var strength = (300 - dist) / 300;
+      dir.scale(strength * 1.5 / Math.max(dist, 1));
+      this.accel.add(dir);
+    }
+  },
+  meet: function (pt, amt) {
+    var dir = new Bird.Vtr();
+    dir.subv(pt, this.pos);
+    dir.scale(amt);
+    return dir;
+  },
+  line: function (b) {
+    var _b, totvel = new Bird.Vtr(),
+      cnt = 0;
+    for (var i = 0, il = b.length; i < il; i++) {
+      if (Math.random() > 0.6) continue;
+      _b = b[i];
+      var dist = _b.pos.dst(this.pos);
+      if (dist > 0 && dist <= this.area) {
+        totvel.add(_b.vel);
+        cnt++;
+      }
+    }
+    if (cnt > 0) {
+      totvel.lowscale(cnt);
+      var v = totvel.len();
+      if (v > this.mfrc) {
+        totvel.lowscale(v / this.mfrc);
+      }
+    }
+    return totvel;
+  },
+  togeth: function (b) {
+    var _b, dist,
+      plus = new Bird.Vtr(),
+      dir = new Bird.Vtr(),
+      cnt = 0;
+    for (var i = 0, il = b.length; i < il; i++) {
+      if (Math.random() > 0.6) continue;
+      _b = b[i];
+      dist = _b.pos.dst(this.pos);
+      if (dist > 0 && dist <= this.area) {
+        plus.add(_b.pos);
+        cnt++;
+      }
+    }
+    if (cnt > 0) {
+      plus.lowscale(cnt);
+    }
+    dir.subv(plus, this.pos);
+    var l = dir.len();
+    if (l > this.mfrc) {
+      dir.lowscale(l / this.mfrc);
+    }
+    return dir;
+  },
+  apart: function (b) {
+    var _b, dist,
+      plus = new Bird.Vtr(),
+      rep = new Bird.Vtr();
+    for (var i = 0, il = b.length; i < il; i++) {
+      if (Math.random() > 0.6) continue;
+      _b = b[i];
+      dist = _b.pos.dst(this.pos);
+      if (dist > 0 && dist <= this.area) {
+        rep.subv(this.pos, _b.pos);
+        rep.level();
+        rep.lowscale(dist);
+        plus.add(rep);
+      }
+    }
+    return plus;
   }
+}
 );
 Bird.Build = Bird.def(
-  function() {
+  function () {
     this.base = 0, this.left = 1, this.right = 2;
     this.pos = new Bird.Vtr();
     this.rot = new Bird.Vtr();
@@ -633,276 +434,276 @@ Bird.Build = Bird.def(
     this.leftwing = this.tri(this.left);
     this.rightwing = this.tri(this.right);
   }, {
-    matrix: function() {
-      this.bbase.vtx();
-      this.leftwing.vtx();
-      this.rightwing.vtx();
-      this.leftwing.wingY(this.wY);
-      this.rightwing.wingY(this.wY);
-      this.bbase.rotY(this.rot.y);
-      this.bbase.rotZ(this.rot.z);
-      this.leftwing.rotY(this.rot.y);
-      this.leftwing.rotZ(this.rot.z);
-      this.rightwing.rotY(this.rot.y);
-      this.rightwing.rotZ(this.rot.z);
-      this.bbase.trans(this.pos);
-      this.leftwing.trans(this.pos);
-      this.rightwing.trans(this.pos);
-    },
-    draw: function() {
-      this.bbase.draw();
-      this.leftwing.draw();
-      this.rightwing.draw();
-    },
-    tri: function(i) {
-      var v1, v2, v3, v;
-      v = Bird.v[Bird.beak[i][0]];
-      v1 = new Bird.Vtr(v[0], v[1], v[2]);
-      v = Bird.v[Bird.beak[i][1]];
-      v2 = new Bird.Vtr(v[0], v[1], v[2]);
-      v = Bird.v[Bird.beak[i][2]];
-      v3 = new Bird.Vtr(v[0], v[1], v[2]);
-      return new Bird.Tri(v1, v2, v3);
-    },
-    wang: function(y) {
-      var v1 = Bird.v[Bird.beak[1][1]];
-      this.rot.x = Math.atan2(y, v1[0]);
-    },
-    zpos: function() {
-      var z1 = this.bbase._z();
-      var z2 = this.leftwing._z();
-      var z3 = this.rightwing._z();
-      return Math.min(z1, z2, z3);
-    },
-    wing: function(y) {
-      this.wY = y;
-    }
+  matrix: function () {
+    this.bbase.vtx();
+    this.leftwing.vtx();
+    this.rightwing.vtx();
+    this.leftwing.wingY(this.wY);
+    this.rightwing.wingY(this.wY);
+    this.bbase.rotY(this.rot.y);
+    this.bbase.rotZ(this.rot.z);
+    this.leftwing.rotY(this.rot.y);
+    this.leftwing.rotZ(this.rot.z);
+    this.rightwing.rotY(this.rot.y);
+    this.rightwing.rotZ(this.rot.z);
+    this.bbase.trans(this.pos);
+    this.leftwing.trans(this.pos);
+    this.rightwing.trans(this.pos);
+  },
+  draw: function () {
+    this.bbase.draw();
+    this.leftwing.draw();
+    this.rightwing.draw();
+  },
+  tri: function (i) {
+    var v1, v2, v3, v;
+    v = Bird.v[Bird.beak[i][0]];
+    v1 = new Bird.Vtr(v[0], v[1], v[2]);
+    v = Bird.v[Bird.beak[i][1]];
+    v2 = new Bird.Vtr(v[0], v[1], v[2]);
+    v = Bird.v[Bird.beak[i][2]];
+    v3 = new Bird.Vtr(v[0], v[1], v[2]);
+    return new Bird.Tri(v1, v2, v3);
+  },
+  wang: function (y) {
+    var v1 = Bird.v[Bird.beak[1][1]];
+    this.rot.x = Math.atan2(y, v1[0]);
+  },
+  zpos: function () {
+    var z1 = this.bbase._z();
+    var z2 = this.leftwing._z();
+    var z3 = this.rightwing._z();
+    return Math.min(z1, z2, z3);
+  },
+  wing: function (y) {
+    this.wY = y;
   }
+}
 );
 Bird.Tri = Bird.def(
-  function(p1, p2, p3) {
+  function (p1, p2, p3) {
     this.mainv = [p1.copy(), p2.copy(), p3.copy()];
     this.Vtxs = [p1.copy(), p2.copy(), p3.copy()];
     this.bv = new Bird.Vtr(0.243, 0.247, 0.243);
   }, {
-    draw: function() {
-      var v1 = [this.Vtxs[0].Pt().x, this.Vtxs[0].Pt().y];
-      var v2 = [this.Vtxs[1].Pt().x, this.Vtxs[1].Pt().y];
-      var v3 = [this.Vtxs[2].Pt().x, this.Vtxs[2].Pt().y];
-      var col = this.col();
-      Bird.$.fillStyle = col;
-      Bird.$.strokeStyle = col;
-      Bird.$.lineWidth = 0.1;
-      Bird.$.beginPath();
-      Bird.$.moveTo(v1[0], v1[1]);
-      Bird.$.lineTo(v2[0], v2[1]);
-      Bird.$.lineTo(v3[0], v3[1]);
-      Bird.$.lineTo(v1[0], v1[1]);
-      Bird.$.closePath();
-      Bird.$.fill();
-      Bird.$.stroke();
-    },
-    rotX: function(a) {
-      var ang = a;
-      this.Vtxs.forEach(
-        function(e, i, a) {
-          Bird.Matrix.rotX(e, ang);
-        }
-      );
-    },
-    rotY: function(a) {
-      var ang = a;
-      this.Vtxs.forEach(
-        function(e, i, a) {
-          Bird.Matrix.rotY(e, ang);
-        }
-      );
-    },
-    rotZ: function(a) {
-      var ang = a;
-      this.Vtxs.forEach(
-        function(e, i, a) {
-          Bird.Matrix.rotZ(e, ang);
-        }
-      );
-    },
-    trans: function(s) {
-      var trans = s;
-      this.Vtxs.forEach(
-        function(e, i, a) {
-          Bird.Matrix.trans(e, [trans.x, trans.y, trans.z]);
-        }
-      );
-    },
-    vtx: function(idx) {
-      for (var i = 0; i < 3; i++) {
-        var x = this.mainv[i].x;
-        var y = this.mainv[i].y;
-        var z = this.mainv[i].z;
-        this.Vtxs[i].x = x;
-        this.Vtxs[i].y = y;
-        this.Vtxs[i].z = z;
+  draw: function () {
+    var v1 = [this.Vtxs[0].Pt().x, this.Vtxs[0].Pt().y];
+    var v2 = [this.Vtxs[1].Pt().x, this.Vtxs[1].Pt().y];
+    var v3 = [this.Vtxs[2].Pt().x, this.Vtxs[2].Pt().y];
+    var col = this.col();
+    Bird.$.fillStyle = col;
+    Bird.$.strokeStyle = col;
+    Bird.$.lineWidth = 0.1;
+    Bird.$.beginPath();
+    Bird.$.moveTo(v1[0], v1[1]);
+    Bird.$.lineTo(v2[0], v2[1]);
+    Bird.$.lineTo(v3[0], v3[1]);
+    Bird.$.lineTo(v1[0], v1[1]);
+    Bird.$.closePath();
+    Bird.$.fill();
+    Bird.$.stroke();
+  },
+  rotX: function (a) {
+    var ang = a;
+    this.Vtxs.forEach(
+      function (e, i, a) {
+        Bird.Matrix.rotX(e, ang);
       }
-    },
-    wingY: function(y) {
-      this.Vtxs[0].y = y;
-    },
-    _z: function() {
-      return Math.min(this.Vtxs[0].z, this.Vtxs[1].z, this.Vtxs[2].z);
-    },
-    col: function() {
-      var e = 0.3,
-          f = 0.3,
-          g = 0.7;
-      var bw = new Bird.Vtr(1, 1, 1);
-      var n = this.norm();
-      var x = this.Vtxs[0].copy();
-      var v = x.sub(Bird.V);
-      v.level();
-      x = this.Vtxs[0].copy();
-      var l = x.sub(Bird.L);
-      l.level();
-      var p = l.p(n);
-      var x1 = n.copy();
-      x1.scale(p);
-      x1.scale(2);
-      var r = l.copy();
-      r.sub(x1);
-      x1.scale(-1);
-      p = Math.max(x1.p(l), 0);
-      var col = this.bv.copy();
-      col.scale(p);
-      col.scale(col, e);
-      x1 = col.copy();
-      var x2 = r.copy();
-      x2.scale(-1);
-      p = Math.pow(Math.max(x2.p(v)), 20);
-      x2 = bw.copy();
-      x2.scale(p * f);
-      var x3 = this.bv.copy();
-      x3.scale(g);
-      x1.add(x2);
-      x1.add(x3);
-      var _r = Math.floor(x1.x * 255);
-      var _g = Math.floor(x1.y * 255);
-      var _b = Math.floor(x1.z * 255);
-      return 'rgb(' + _r + ',' + _g + ',' + _b + ')';
-    },
-    norm: function() {
-      var v1 = this.Vtxs[0];
-      var v2 = this.Vtxs[1];
-      var v3 = this.Vtxs[2];
-      v3.sub(v2);
-      v1.sub(v3);
-      v3.cross(v1);
-      v3.level();
-      return v3;
+    );
+  },
+  rotY: function (a) {
+    var ang = a;
+    this.Vtxs.forEach(
+      function (e, i, a) {
+        Bird.Matrix.rotY(e, ang);
+      }
+    );
+  },
+  rotZ: function (a) {
+    var ang = a;
+    this.Vtxs.forEach(
+      function (e, i, a) {
+        Bird.Matrix.rotZ(e, ang);
+      }
+    );
+  },
+  trans: function (s) {
+    var trans = s;
+    this.Vtxs.forEach(
+      function (e, i, a) {
+        Bird.Matrix.trans(e, [trans.x, trans.y, trans.z]);
+      }
+    );
+  },
+  vtx: function (idx) {
+    for (var i = 0; i < 3; i++) {
+      var x = this.mainv[i].x;
+      var y = this.mainv[i].y;
+      var z = this.mainv[i].z;
+      this.Vtxs[i].x = x;
+      this.Vtxs[i].y = y;
+      this.Vtxs[i].z = z;
     }
+  },
+  wingY: function (y) {
+    this.Vtxs[0].y = y;
+  },
+  _z: function () {
+    return Math.min(this.Vtxs[0].z, this.Vtxs[1].z, this.Vtxs[2].z);
+  },
+  col: function () {
+    var e = 0.3,
+      f = 0.3,
+      g = 0.7;
+    var bw = new Bird.Vtr(1, 1, 1);
+    var n = this.norm();
+    var x = this.Vtxs[0].copy();
+    var v = x.sub(Bird.V);
+    v.level();
+    x = this.Vtxs[0].copy();
+    var l = x.sub(Bird.L);
+    l.level();
+    var p = l.p(n);
+    var x1 = n.copy();
+    x1.scale(p);
+    x1.scale(2);
+    var r = l.copy();
+    r.sub(x1);
+    x1.scale(-1);
+    p = Math.max(x1.p(l), 0);
+    var col = this.bv.copy();
+    col.scale(p);
+    col.scale(col, e);
+    x1 = col.copy();
+    var x2 = r.copy();
+    x2.scale(-1);
+    p = Math.pow(Math.max(x2.p(v)), 20);
+    x2 = bw.copy();
+    x2.scale(p * f);
+    var x3 = this.bv.copy();
+    x3.scale(g);
+    x1.add(x2);
+    x1.add(x3);
+    var _r = Math.floor(x1.x * 255);
+    var _g = Math.floor(x1.y * 255);
+    var _b = Math.floor(x1.z * 255);
+    return 'rgb(' + _r + ',' + _g + ',' + _b + ')';
+  },
+  norm: function () {
+    var v1 = this.Vtxs[0];
+    var v2 = this.Vtxs[1];
+    var v3 = this.Vtxs[2];
+    v3.sub(v2);
+    v1.sub(v3);
+    v3.cross(v1);
+    v3.level();
+    return v3;
   }
+}
 );
 Bird.Vtr = Bird.def(
-  function(x, y, z) {
+  function (x, y, z) {
     this.x = x || 0;
     this.y = y || 0;
     this.z = z || 0;
     this.fl = 1000;
   }, {
-    Pt: function() {
-      var zsc = this.fl + this.z;
-      var scale = this.fl / zsc;
-      var x = this.x * scale;
-      var y = this.y * scale;
-      return {
-        x: x,
-        y: y,
-        scale: scale
-      };
-    },
-    set: function(x, y, z) {
-      this.x = x;
-      this.y = y;
-      this.z = z;
-      return this;
-    },
-    len: function() {
-      return Math.sqrt(this.x * this.x + this.y * this.y + this.z * this.z);
-    },
-    add: function(v, w) {
+  Pt: function () {
+    var zsc = this.fl + this.z;
+    var scale = this.fl / zsc;
+    var x = this.x * scale;
+    var y = this.y * scale;
+    return {
+      x: x,
+      y: y,
+      scale: scale
+    };
+  },
+  set: function (x, y, z) {
+    this.x = x;
+    this.y = y;
+    this.z = z;
+    return this;
+  },
+  len: function () {
+    return Math.sqrt(this.x * this.x + this.y * this.y + this.z * this.z);
+  },
+  add: function (v, w) {
 
-      this.x += v.x;
-      this.y += v.y;
-      this.z += v.z;
-      return this;
-    },
-    sub: function(v, w) {
+    this.x += v.x;
+    this.y += v.y;
+    this.z += v.z;
+    return this;
+  },
+  sub: function (v, w) {
 
-      this.x -= v.x;
-      this.y -= v.y;
-      this.z -= v.z;
-      return this;
-    },
-    subv: function(a, b) {
-      this.x = a.x - b.x;
-      this.y = a.y - b.y;
-      this.z = a.z - b.z;
-      return this;
-    },
-    scale: function(upd) {
-      this.x *= upd;
-      this.y *= upd;
-      this.z *= upd;
-      return this;
-    },
-    lowscale: function(upd) {
-      if (upd !== 0) {
-        var inv = 1 / upd;
-        this.x *= inv;
-        this.y *= inv;
-        this.z *= inv;
-      } else {
-        this.x = 0;
-        this.y = 0;
-        this.z = 0;
-      }
-      return this;
-    },
-    copy: function(v) {
-      this.x = v.x;
-      this.y = v.y;
-      this.z = v.z;
-      return this;
-    },
-    dst: function(v) {
-      return Math.sqrt(this.dsq(v));
-    },
-    dsq: function(v) {
-      var dx = this.x - v.x;
-      var dy = this.y - v.y;
-      var dz = this.z - v.z;
-      return dx * dx + dy * dy + dz * dz;
-    },
-    cross: function(v, w) {
-      var x = this.x,
-        y = this.y,
-        z = this.z;
-      this.x = y * v.z - z * v.y;
-      this.y = z * v.x - x * v.z;
-      this.z = x * v.y - y * v.x;
-      return this;
-    },
-    p: function(v) {
-      return this.x * v.x + this.y * v.y + this.z * v.z;
-    },
-    level: function() {
-      return this.lowscale(this.len());
-    },
-    copy: function() {
-      return new Bird.Vtr(this.x, this.y, this.z);
+    this.x -= v.x;
+    this.y -= v.y;
+    this.z -= v.z;
+    return this;
+  },
+  subv: function (a, b) {
+    this.x = a.x - b.x;
+    this.y = a.y - b.y;
+    this.z = a.z - b.z;
+    return this;
+  },
+  scale: function (upd) {
+    this.x *= upd;
+    this.y *= upd;
+    this.z *= upd;
+    return this;
+  },
+  lowscale: function (upd) {
+    if (upd !== 0) {
+      var inv = 1 / upd;
+      this.x *= inv;
+      this.y *= inv;
+      this.z *= inv;
+    } else {
+      this.x = 0;
+      this.y = 0;
+      this.z = 0;
     }
+    return this;
+  },
+  copy: function (v) {
+    this.x = v.x;
+    this.y = v.y;
+    this.z = v.z;
+    return this;
+  },
+  dst: function (v) {
+    return Math.sqrt(this.dsq(v));
+  },
+  dsq: function (v) {
+    var dx = this.x - v.x;
+    var dy = this.y - v.y;
+    var dz = this.z - v.z;
+    return dx * dx + dy * dy + dz * dz;
+  },
+  cross: function (v, w) {
+    var x = this.x,
+      y = this.y,
+      z = this.z;
+    this.x = y * v.z - z * v.y;
+    this.y = z * v.x - x * v.z;
+    this.z = x * v.y - y * v.x;
+    return this;
+  },
+  p: function (v) {
+    return this.x * v.x + this.y * v.y + this.z * v.z;
+  },
+  level: function () {
+    return this.lowscale(this.len());
+  },
+  copy: function () {
+    return new Bird.Vtr(this.x, this.y, this.z);
   }
+}
 );
 Bird.Matrix = {
-  rotX: function(pt, angX) {
+  rotX: function (pt, angX) {
     var pos = [pt.x, pt.y, pt.z];
     var asin = Math.sin(angX);
     var acos = Math.cos(angX);
@@ -915,7 +716,7 @@ Bird.Matrix = {
     pt.y = calc[1];
     pt.z = calc[2];
   },
-  rotY: function(pt, angY) {
+  rotY: function (pt, angY) {
     var pos = [pt.x, pt.y, pt.z];
     var asin = Math.sin(angY);
     var acos = Math.cos(angY);
@@ -928,7 +729,7 @@ Bird.Matrix = {
     pt.y = calc[1];
     pt.z = calc[2];
   },
-  rotZ: function(pt, angZ) {
+  rotZ: function (pt, angZ) {
     var pos = [pt.x, pt.y, pt.z];
     var asin = Math.sin(angZ);
     var acos = Math.cos(angZ);
@@ -941,17 +742,17 @@ Bird.Matrix = {
     pt.y = calc[1];
     pt.z = calc[2];
   },
-  trans: function(pt, s) {
+  trans: function (pt, s) {
     pt.x += s[0];
     pt.y += s[1];
     pt.z += s[2];
   },
-  scale: function(pt, s) {
+  scale: function (pt, s) {
     pt.x *= s[0];
     pt.y *= s[1];
     pt.z *= s[2];
   },
-  mm: function(m1, m2) {
+  mm: function (m1, m2) {
     var calc = [];
     calc[0] = m1[0] * m2[0][0] + m1[1] * m2[1][0] + m1[2] * m2[2][0];
     calc[1] = m1[0] * m2[0][1] + m1[1] * m2[1][1] + m1[2] * m2[2][1];
@@ -974,30 +775,20 @@ function initBirds() {
   var mouseTarget = new Bird.Vtr(0, 0, 0);
   var mouseInside = false;
 
-  c.addEventListener('mousemove', function(e) {
+  // Track mouse anywhere on canvas for avoidance behavior
+  c.addEventListener('mousemove', function (e) {
     var rect = c.getBoundingClientRect();
     var mx = e.clientX - rect.left;
     var my = e.clientY - rect.top;
 
-    // Define smaller follow area (center 60% of canvas)
-    var followMargin = 0.2; // 20% margin on each side
-    var followLeft = Bird.canv.w * followMargin;
-    var followRight = Bird.canv.w * (1 - followMargin);
-    var followTop = Bird.canv.h * followMargin;
-    var followBottom = Bird.canv.h * (1 - followMargin);
-
-    // Check if mouse is inside the smaller follow area
-    if (mx >= followLeft && mx <= followRight && my >= followTop && my <= followBottom) {
-      mouseInside = true;
-      mouseTarget.x = mx - Bird.canv.w / 2;
-      mouseTarget.y = -(my - Bird.canv.h / 2);
-      mouseTarget.z = 0;
-    } else {
-      mouseInside = false;
-    }
+    // Update mouse target for avoidance (always active)
+    mouseInside = true;
+    mouseTarget.x = mx - Bird.canv.w / 2;
+    mouseTarget.y = -(my - Bird.canv.h / 2);
+    mouseTarget.z = 0;
   });
 
-  c.addEventListener('mouseleave', function() {
+  c.addEventListener('mouseleave', function () {
     mouseInside = false;
   });
 
@@ -1005,17 +796,16 @@ function initBirds() {
   var b = [];
   for (var i = 0; i < 60; i++) {
     _b = b[i] = new Bird.obj();
-    // Start birds closer to center for initial reveal
-    _b.pos.x = Math.random() * 400 - 200;
-    _b.pos.y = Math.random() * 400 - 200;
-    _b.pos.z = Math.random() * 400 - 200;
-    _b.vel.x = Math.random() * 1.8 - 0.8;
-    _b.vel.y = Math.random() * 1.8 - 0.8;
-    _b.vel.z = Math.random() * 1.8 - 0.8;
+    _b.pos.x = Math.random() * 800 - 400;
+    _b.pos.y = Math.random() * 800 - 400;
+    _b.pos.z = Math.random() * 800 - 400;
+    _b.vel.x = Math.random() * 2 - 1;
+    _b.vel.y = Math.random() * 2 - 1;
+    _b.vel.z = Math.random() * 2 - 1;
     _b._coll(true);
     _b.param(400, 400, 800);
     _b.mouseTarget = mouseTarget; // Store reference to mouse target
-    _b.mouseInside = function() { return mouseInside; }; // Store reference to mouse state
+    _b.mouseInside = function () { return mouseInside; }; // Store reference to mouse state
     bird = birds[i] = new Bird.Build();
     bird.phase = Math.floor(Math.random() * 62.83);
     bird.pos = b[i].pos;
@@ -1029,27 +819,20 @@ function initBirds() {
   }
 
   function draw() {
-    // Follow just the first bird for better performance
-    var leadBirdX = b[0] ? b[0].pos.x : 0;
-    var leadBirdY = b[0] ? b[0].pos.y : 0;
-
-    // Update parallax based on lead bird
-    if (window.updateParallaxFromBirds) {
-      window.updateParallaxFromBirds(leadBirdX, leadBirdY);
-    }
-
-    // Update leaf parallax to match lead bird
+    // Apply parallax offset to bird canvas
+    var parallaxOffsetX = 0;
+    var parallaxOffsetY = 0;
     if (window.leafParallax) {
-      window.leafParallax.x = leadBirdX;
-      window.leafParallax.y = leadBirdY;
+      parallaxOffsetX = window.leafParallax.x * 0.015; // Subtle parallax effect
+      parallaxOffsetY = window.leafParallax.y * 0.015;
     }
 
     Bird.$.setTransform(1, 0, 0, 1, 0, 0);
-    Bird.$.translate(Bird.canv.w / 2, Bird.canv.h / 2);
+    Bird.$.translate(Bird.canv.w / 2 + parallaxOffsetX, Bird.canv.h / 2 + parallaxOffsetY);
     Bird.$.clearRect(-Bird.canv.w / 2, -Bird.canv.h / 2, Bird.canv.w, Bird.canv.h);
     Bird.$.scale(1, -1);
     var arr = [];
-    b.forEach(function(e, i, a) {
+    b.forEach(function (e, i, a) {
       var _b = b[i];
       _b.run(b);
       var bird = birds[i];
@@ -1063,10 +846,10 @@ function initBirds() {
         o: bird
       });
     });
-    arr.sort(function(a, b) {
+    arr.sort(function (a, b) {
       return a.z < b.z ? -1 : a.z > b.z ? 1 : 0;
     });
-    arr.forEach(function(e, i, a) {
+    arr.forEach(function (e, i, a) {
       e.o.draw();
     });
   }
@@ -1074,17 +857,17 @@ function initBirds() {
 
 // Store function globally to be called after water animation
 window.startBirdAnimation = initBirds;
-window.addEventListener('resize',function(){
-   if(c.width!==window.innerWidth && c.height!==window.innerHeight){
-     Bird.canv = {
+window.addEventListener('resize', function () {
+  if (c.width !== window.innerWidth && c.height !== window.innerHeight) {
+    Bird.canv = {
       w: c.width = window.innerWidth,
       h: c.height = window.innerHeight
     };
-   }
+  }
 });
 
 // Falling Leaves Animation
-var LeafScene = function(el) {
+var LeafScene = function (el) {
   this.viewport = el;
   this.world = document.createElement('div');
   this.leaves = [];
@@ -1106,32 +889,32 @@ var LeafScene = function(el) {
   // animation helper
   this.timer = 0;
 
-  this._resetLeaf = function(leaf) {
+  this._resetLeaf = function (leaf) {
     // place leaf on the RIGHT side only
     leaf.x = this.width + 10 - Math.random() * 100; // Start from right edge with slight variation
     leaf.y = -10 - Math.random() * 100; // Start above screen
-    leaf.z = Math.random()*200;
+    leaf.z = Math.random() * 200;
 
     // at the start, the leaf can be anywhere on right side
     if (this.timer == 0) {
       leaf.x = this.width + 10 - Math.random() * 150;
-      leaf.y = Math.random()*this.height;
+      leaf.y = Math.random() * this.height;
     }
 
     // Choose axis of rotation.
     // If axis is not X, chose a random static x-rotation for greater variability
-    leaf.rotation.speed = Math.random()*10;
+    leaf.rotation.speed = Math.random() * 10;
     var randomAxis = Math.random();
     if (randomAxis > 0.5) {
       leaf.rotation.axis = 'X';
     } else if (randomAxis > 0.25) {
       leaf.rotation.axis = 'Y';
-      leaf.rotation.x = Math.random()*180 + 90;
+      leaf.rotation.x = Math.random() * 180 + 90;
     } else {
       leaf.rotation.axis = 'Z';
-      leaf.rotation.x = Math.random()*360 - 180;
+      leaf.rotation.x = Math.random() * 360 - 180;
       // looks weird if the rotation is too fast around this axis
-      leaf.rotation.speed = Math.random()*3;
+      leaf.rotation.speed = Math.random() * 3;
     }
 
     // random speed
@@ -1141,7 +924,7 @@ var LeafScene = function(el) {
     return leaf;
   }
 
-  this._updateLeaf = function(leaf) {
+  this._updateLeaf = function (leaf) {
     var leafWindSpeed = this.options.wind.speed(this.timer - this.options.wind.start, leaf.y);
 
     // Move left and down (from right side)
@@ -1173,7 +956,7 @@ var LeafScene = function(el) {
     }
   }
 
-  this._updateWind = function() {
+  this._updateWind = function () {
     // wind follows a sine curve: asin(b*time + c) + a
     // where a = wind magnitude as a function of leaf position, b = wind.duration, c = offset
     // wind duration should be related to wind magnitude, e.g. higher windspeed means longer gust duration
@@ -1186,16 +969,16 @@ var LeafScene = function(el) {
 
       var screenHeight = this.height;
 
-      this.options.wind.speed = function(t, y) {
+      this.options.wind.speed = function (t, y) {
         // should go from full wind speed at the top, to 1/2 speed at the bottom, using leaf Y
-        var a = this.magnitude/2 * (screenHeight - 2*y/3)/screenHeight;
-        return a * Math.sin(2*Math.PI/this.duration * t + (3 * Math.PI/2)) + a;
+        var a = this.magnitude / 2 * (screenHeight - 2 * y / 3) / screenHeight;
+        return a * Math.sin(2 * Math.PI / this.duration * t + (3 * Math.PI / 2)) + a;
       }
     }
   }
 }
 
-LeafScene.prototype.init = function() {
+LeafScene.prototype.init = function () {
   for (var i = 0; i < this.options.numLeaves; i++) {
     var leaf = {
       el: document.createElement('div'),
@@ -1232,13 +1015,13 @@ LeafScene.prototype.init = function() {
 
   // reset window height/width on resize
   var self = this;
-  window.onresize = function(event) {
+  window.onresize = function (event) {
     self.width = self.viewport.offsetWidth;
     self.height = self.viewport.offsetHeight;
   };
 }
 
-LeafScene.prototype.render = function() {
+LeafScene.prototype.render = function () {
   this._updateWind();
   for (var i = 0; i < this.leaves.length; i++) {
     this._updateLeaf(this.leaves[i]);
@@ -1249,11 +1032,18 @@ LeafScene.prototype.render = function() {
   requestAnimationFrame(this.render.bind(this));
 }
 
-// Global parallax tracking for leaves (updated by bird flock)
+// Global parallax tracking for leaves and birds
 window.leafParallax = { x: 0, y: 0 };
 
+// Track mouse for parallax effect
+window.addEventListener('pointermove', function (e) {
+  if (e.isPrimary === false) return;
+  window.leafParallax.x = e.clientX - window.innerWidth / 2;
+  window.leafParallax.y = e.clientY - window.innerHeight / 2;
+}, { passive: true });
+
 // start up leaf scene - will be triggered after GSAP animation
-window.startLeafAnimation = function() {
+window.startLeafAnimation = function () {
   var leafContainer = document.querySelector('.falling-leaves');
   if (leafContainer && !window.leafSceneStarted) {
     window.leafSceneStarted = true;
